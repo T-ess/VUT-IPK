@@ -1,4 +1,5 @@
 pub
 .idea
-.vscode
 fsptest.zip
+.vscode/*
+!.vscode/launch.json
