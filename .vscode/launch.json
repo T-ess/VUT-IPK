@@ -7,7 +7,7 @@
         {
             "name": "Python: Current File",
             "type": "python",
-            "args": ["-n","127.0.0.1:3333","-f","fsp://server1/soubor1.txt"],
+            "args": ["-n","127.0.0.1:3333","-f", "fsp://server1/*"],
             "request": "launch",
             "program": "./fileget.py",
             "console": "integratedTerminal"
