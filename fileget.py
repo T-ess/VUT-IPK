@@ -58,7 +58,7 @@ def copy_filename(duplicate_file):
     return duplicate_file
 
 
-def fsp(server, file, path):
+def fsp(server, file, path, all=False):
     #* rename file if already exists
     if file != 'index':
         file = copy_filename(file)
@@ -112,6 +112,9 @@ def fsp(server, file, path):
         if (not getanswer) and (not parseHeader):
             if get_err:
                 s_fsp.close()
+                if all:
+                    print(msg_err)
+                    return
                 sys.exit(msg_err)
             else:
                 f.close()
@@ -173,7 +176,7 @@ if surl_file == '*':
     getall = True
 
 if getall:
-    fsp(surl.hostname, "index", "index")
+    fsp(surl.hostname, "index", "index", True)
     try:
         f_index = open('index', 'r')
     except:
