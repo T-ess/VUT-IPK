@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "args": ["-n","127.0.0.1:3333","-f", "fsp://server1/*"],
+            "request": "launch",
+            "program": "./fileget.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}
