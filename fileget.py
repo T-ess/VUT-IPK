@@ -32,24 +32,39 @@ def argument_parse():
         sys.exit("Use the fsp protocol.")
     #* parse NAMESERVER - ip and port
     nameserver = args.n.split(':', 1)
-    nameserver[1] = int(nameserver[1]) # port to integer
+    try:
+        nameserver[1] = int(nameserver[1]) # port to integer
+    except:
+        sys.exit("Port must be a numeric value.")
 
 def file_from_path(path):
     filename = path.split("/")
     filename = filename[-1]
     return filename
 
-def fsp(server, file, path, all = False):
-    #* getall - rename file if already exists
-    if all:
-        i = 1
-        while os.path.exists(file):
-            file = f'copy{i}-' + file
-            i += 1
+def copy_filename(duplicate_file):
+    while os.path.exists(duplicate_file):
+        duplicate_file = duplicate_file.rsplit('.', 1) # split file name and extension if present
+        if re.search(r"\([0-9]*\)", duplicate_file[0]): # if a copy of this file already exists
+            filenum = re.search(r"\d*(?=\))", duplicate_file[0]).group(0) # match digits inside ( )
+            filenum = int(filenum)
+            filenum += 1
+            filenum = '(' + str(filenum) + ')'
+            duplicate_file[0] = re.sub(r"\([0-9]*\)", filenum, duplicate_file[0]) # increment digit inside ( ) 
+            duplicate_file[0] = duplicate_file[0] + '.'
+        else:
+            duplicate_file[0] = duplicate_file[0] + '(1)' + '.'
+        duplicate_file = ''.join(duplicate_file)
+    return duplicate_file
 
+
+def fsp(server, file, path):
+    #* rename file if already exists
+    if file != 'index':
+        file = copy_filename(file)
+    #* connect and send GET request
     s_fsp = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s_fsp.settimeout(600)
-    #* connect and send GET request
     try:
         s_fsp.connect((fileserver[0], fileserver[1]))
     except:
@@ -140,7 +155,10 @@ if (fileserver == '') or (fileserver[0:3] == 'ERR'):
     sys.exit("Unable to get the file server IP address.")
 
 fileserver = fileserver[3:].split(":", 1) # ip address + port
-fileserver[1] = int(fileserver[1]) # port
+try:
+    fileserver[1] = int(fileserver[1]) # port
+except:
+    sys.exit("Port must be a numeric value.")
 
 #* get file path and name
 getall = False
@@ -160,13 +178,9 @@ if getall:
         f_index = open('index', 'r')
     except:
         sys.exit('Unable to open the "index" file.')
-    ready_files = []
+
     for line in f_index:
         line_file = file_from_path(line.strip())
-        #TODO: nefunguje pro sobory s copy uz pred jmenem
-        if os.path.exists(line_file) and (line_file not in ready_files):
-            os.remove(line_file)
-        ready_files.append(line_file)
-        fsp(surl.hostname, line_file, line.strip(), True)
+        fsp(surl.hostname, line_file, line.strip())
 else:
     fsp(surl.hostname, surl_file, surl_path)
