@@ -38,11 +38,23 @@ def argument_parse():
         sys.exit("Port must be a numeric value.")
 
 def file_from_path(path):
+    """Gets the filename from a path.
+    Args:
+        path (string): path to file
+    Returns:
+        [string]: filename
+    """
     filename = path.split("/")
     filename = filename[-1]
     return filename
 
 def copy_filename(duplicate_file):
+    """Changes the name of the downloaded server Windows-style if a file with the same name already exists.
+    Args:
+        duplicate_file (string): name of the file on the server
+    Returns:
+        string: new unique filename
+    """
     while os.path.exists(duplicate_file):
         duplicate_file = duplicate_file.rsplit('.', 1) # split file name and extension if present
         if re.search(r"\([0-9]*\)", duplicate_file[0]): # if a copy of this file already exists
@@ -59,6 +71,13 @@ def copy_filename(duplicate_file):
 
 
 def fsp(server, file, path, all=False):
+    """FSP - downloads the specified file from the server.
+    Args:
+        server (string): fileserver
+        file (string): name of downloaded file
+        path (string): path of downloaded file
+        all (bool, optional): True if all files from the server are being downloaded. Defaults to False.
+    """
     #* rename file if already exists
     if file != 'index':
         file = copy_filename(file)
@@ -139,6 +158,8 @@ def fsp(server, file, path, all=False):
         parseHeader = False
 
     s_fsp.close()
+
+
 
 
 argument_parse()
