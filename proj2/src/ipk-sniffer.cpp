@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     if (pcap_activate(opened) != 0) {
-        std::cerr << "Activeting the pcap failed." << std::endl;
+        std::cerr << "Activating the pcap failed." << std::endl;
         pcap_close(opened);
         exit(1);
     }
@@ -35,6 +35,92 @@ int main(int argc, char* argv[]) {
 
 void handler(u_char *useless, const struct pcap_pkthdr* header, const u_char* packet) {
     format_time(header->ts);
+    // convert IP source and destination taken from the iphdr struct to char
+    // https://linux.die.net/man/3/inet_ntoa
+    struct iphdr *iph = (struct iphdr*)(packet + sizeof(struct ethhdr)); 
+    if (iph->protocol == TCP_PROTOCOL) {
+        tcp_packet(packet, header, iph);
+    } else if (iph->protocol == UDP_PROTOCOL) {
+        udp_packet(packet, header, iph);
+    }
+}
+
+void tcp_packet(const u_char* packet, const struct pcap_pkthdr* header, struct iphdr *iph) {
+    unsigned int iph_l = (iph->ihl) * 4; // internet header length in bytes
+    struct tcphdr *tcp = (struct tcphdr*)(packet + iph_l + sizeof(struct ethhdr));
+    // https://stackoverflow.com/questions/4221448/getting-tcp-options-beyond-tcphdr-doff-out-of-char-eth-ip-tcp-packer-repres
+    unsigned int tcphdr_len =  sizeof(struct ether_header) + iph_l + tcp->doff*4; // start of data
+    struct in_addr ip_src_s;
+    struct in_addr ip_dest_s;
+    ip_src_s.s_addr = iph->saddr;
+    ip_dest_s.s_addr = iph->daddr;
+    char *ip_src = inet_ntoa(ip_src_s); // source IP
+    char *ip_dest = inet_ntoa(ip_dest_s); // destination IP
+    uint16_t port_src = ntohs(tcp->th_sport);
+    uint16_t port_dest = ntohs(tcp->th_dport);
+    std::cout << ip_src << " : " << port_src << " > " << ip_dest << " : " << port_dest;
+    std::cout << ", length " << header->len << " bytes" << std::endl;
+    print_content(packet, tcphdr_len, 0);
+    std::cout << std::endl;
+}
+
+void udp_packet(const u_char* packet, const struct pcap_pkthdr* header, struct iphdr *iph) {
+    unsigned int iph_l = (iph->ihl) * 4; // internet header length in bytes
+    struct udphdr *udp = (struct udphdr*)(packet + iph_l + sizeof(struct ethhdr));
+    unsigned int udphdr_len = iph_l + sizeof(udphdr) + sizeof(struct ether_header) ;
+    struct in_addr ip_src_s;
+    struct in_addr ip_dest_s;
+    ip_src_s.s_addr = iph->saddr;
+    ip_dest_s.s_addr = iph->daddr;
+    char *ip_src = inet_ntoa(ip_src_s); // source IP
+    char *ip_dest = inet_ntoa(ip_dest_s); // destination IP
+    uint16_t port_src = ntohs(udp->uh_sport);
+    uint16_t port_dest = ntohs(udp->uh_dport);
+    std::cout << ip_src << " : " << port_src << " > " << ip_dest << " : " << port_dest;
+    std::cout << ", length " << header->len << " bytes" << std::endl;
+    print_content(packet, udphdr_len, 0);
+    std::cout << std::endl;
+}
+
+/**
+ * This function is taken from the site https://www.binarytides.com/packet-sniffer-code-c-libpcap-linux-sockets/
+ * and edited to meet the requirements of this project.
+ **/
+void print_content (const u_char *data , int size, int h_size) {   
+	int i , j;
+	for(i = 0; i < size; i++) {
+        // https://stackoverflow.com/questions/14733761/printf-formatting-for-hex
+        // printf("0x%04x: ", h_size); 
+		if(i%16==0)	{
+			for(j = i-16; j < i; j++) {
+				if (isprint(data[j])) {
+                    printf("%c",(unsigned char)data[j]);
+                }
+				else {
+                    printf(".");
+                }
+			}
+			printf("\n");
+		} 
+		
+		if(i%16==0) printf(" ");
+		printf(" %02X",(unsigned int)data[i]);
+				
+		if( i == size-1) {
+			for(j=0;j<15-i%16;j++) {
+			  printf(" "); //extra spaces
+			}
+			for(j=i-i%16 ; j<=i ; j++) {
+				if(data[j]>=32 && data[j]<=128) {
+				  printf("%c",(unsigned char)data[j]);
+				}
+				else {
+				  printf(".");
+				}
+			}
+			printf("\n");
+		}
+	}
 }
 
 void parseargs(int argc, char** argv) {
@@ -131,11 +217,15 @@ void set_filter(pcap_t *opened) {
         else filter_types += " or arp";
     }
     if (args.p) {
-        filter = "(" + filter_types + ")" + " and " + "port " + std::to_string(args.p_val);
+        if (filter_types.length() == 0) {
+            filter = "port " + std::to_string(args.p_val);
+            std::cout << filter;
+        } else {
+            filter = "(" + filter_types + ")" + " and " + "port " + std::to_string(args.p_val);
+        }
     } else {
         filter = filter_types;
     }
-    std::cout << filter << "\n";
     if (filter.length() == 0) {
         return;
     }
@@ -160,7 +250,6 @@ void format_time(struct timeval timestamp) {
     strftime(new_time2, 60, "%z", tmp);
     int ms = timestamp.tv_usec/10;
     std::string ms_s = std::to_string(ms);
-
     std::cout << new_time << ms_s.substr(0, 3) << new_time2 << " ";
 }
 
