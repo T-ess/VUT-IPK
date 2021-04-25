@@ -1,6 +1,8 @@
-//
-// Created by terez on 24.04.2021.
-//
+/**
+ * @short Packet sniffer.
+ * @author Tereza Burianova <xburia28@stud.fit.vutbr.cz>
+ * @file ipk-sniffer.cpp
+**/
 
 #include "ipk-sniffer.h"
 
@@ -33,7 +35,7 @@ int main(int argc, char* argv[]) {
     }
 }
 
-void handler(u_char *useless, const struct pcap_pkthdr* header, const u_char* packet) {
+void handler(u_char *u, const struct pcap_pkthdr* header, const u_char* packet) {
     format_time(header->ts);
     // convert IP source and destination taken from the iphdr struct to char
     // https://linux.die.net/man/3/inet_ntoa
@@ -148,12 +150,24 @@ void parseargs(int argc, char** argv) {
         }
         switch (arg) {
             case 'i':
-                args.i = true;
-                args.i_val = optarg;
+            // https://www.gnu.org/software/gawk/manual/html_node/Getopt-Function.html
+                if (!optarg and argv[optind] != nullptr and argv[optind][0] != '-') {
+                    args.i = true;
+                    args.i_val = argv[optind++];   
+                } else {
+                    args.i = true;
+                    args.i_val = optarg;
+                }
                 break;
             case 'p':
-                args.p = true;
-                args.p_val = strtol(optarg, &pEnd, 10);
+                if (!optarg and argv[optind] != nullptr and argv[optind][0] != '-') {
+                    args.p = true;
+                    char *tmp = argv[optind++];   
+                    args.p_val = strtol(tmp, &pEnd, 10);  
+                } else {
+                    args.p = true;
+                    args.p_val = strtol(optarg, &pEnd, 10);
+                }
                 break;
             case 't':
                 args.tcp = true;
@@ -168,8 +182,14 @@ void parseargs(int argc, char** argv) {
                 args.icmp = true;
                 break;
             case 'n':
-                args.n = true;
-                args.n_val = strtol(optarg, &pEnd, 10);
+                if (!optarg and argv[optind] != nullptr and argv[optind][0] != '-') {
+                        args.n = true;
+                        char *tmp = argv[optind++];   
+                        args.n_val = strtol(tmp, &pEnd, 10);
+                } else {
+                    args.n = true;
+                    args.n_val = strtol(optarg, &pEnd, 10);
+                }
                 break;
             case 'h':
                 p_help();
