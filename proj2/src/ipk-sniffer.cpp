@@ -201,7 +201,7 @@ void parseargs(int argc, char** argv) {
 }
 
 void p_help() {
-    printf("help");
+    printf("./ipk-sniffer [-i rozhraní | --interface rozhraní] {-p ­­port} {[--tcp|-t] [--udp|-u] [--arp] [--icmp] } {-n num}");
     exit(0);
 }
 
